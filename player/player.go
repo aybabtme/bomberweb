@@ -44,7 +44,13 @@ func (w *WebsocketPlayer) Update() chan<- player.State {
 
 func (w *WebsocketPlayer) updateHandler(ws *websocket.Conn) {
 	defer ws.Close()
+	lastTurnSent := -1
 	for u := range w.update {
+		if u.Turn == lastTurnSent {
+			// player already received this turn
+			continue
+		}
+		lastTurnSent = u.Turn
 		err := websocket.JSON.Send(ws, u)
 		if err != nil {
 			w.l.Errorf("[ws/%s] sending update to websocket conn, %v", w.Name(), err)

@@ -22,6 +22,12 @@
 }
 </style>
 <canvas id="canvas" width="800" height="500">Your browser's fucking lame.</canvas>
+<script src="/keyboard.js"></script>
+<script src="/sockets.js"></script>
+<script src="/drawers.js"></script>
 <script src="/client.js"></script>
+<script>
+var client = BomberClient("canvas", "p4", "127.0.0.1:3333");
+</script>
 </body>
 </html>

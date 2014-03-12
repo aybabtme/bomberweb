@@ -1,113 +1,70 @@
+var BomberClient = function(canvasId, playerName, raddr) {
 
-var WS = function(url, receiveFn) {
-  var out = {
-    sckt: new WebSocket(url)
-  };
+  // Get my canvas yo!
+  var canvas = document.getElementById(canvasId);
+  var ctx = canvas.getContext('2d');
+  var drawFunc = {
+    "Wall": WallDrawer,
+    "Ground": GroundDrawer,
+    "Rock": RockDrawer,
+    "Bomb": BombDrawer,
+    "Flame": FlameDrawer,
+    "p1": PlayerDrawer,
+    "p2": PlayerDrawer,
+    "p3": PlayerDrawer,
+    "p4": PlayerDrawer,
+    "PowerUp(Bomb)": BombPUDrawer,
+    "PowerUp(Radius)": RadiusPUDrawer,
+  }
 
-  var init = function() {
-    out.sckt.onmessage = receiveFn || function () {};
+  var boardCache;
 
-    out.sckt.onopen = function (event) {
-      console.log("Connected" + event);
-    };
+  function draw(board) {
+    var widthFactor = canvas.width / board.length;
+    var heightFactor = canvas.height / board[0].length;
 
-    out.sckt.onclose = function(event) {
-      out.sckt = new WebSocket(url);
-      init();
-    };
+    if (boardCache == null) {
+      boardCache = new Array(board.length);
+      for (var i = boardCache.length - 1; i >= 0; i--) {
+        boardCache[i] = new Array(board[0].length)
+      };
+    }
 
-    out.send = function(event) {
-      out.sckt.send(event);
-    };
-  };
-  init();
-  return out;
-};
+    var cell, x, maxX, y, maxY, name;
+    for (var i = board.length - 1; i >= 0; i--) {
+      for (var j = board[i].length - 1; j >= 0; j--) {
+        cell = board[i][j];
+        name = cell.Name;
+        if (boardCache[i][j] == name) {
+          continue
+        }
+        boardCache[i][j] = name
 
-// Get my canvas yo!
-var canvas = document.getElementById('canvas');
-var nameToColor = {
-  "Wall": "black",
-  "Ground": "white",
-  "Rock": "yellow",
-  "Bomb": "green",
-  "Flame": "red",
-  "p1": "blue",
-  "p2": "blue",
-  "p3": "blue",
-  "p4": "blue",
-}
+        x = Math.ceil(cell.X * widthFactor);
+        y = Math.ceil(cell.Y * heightFactor);
+        maxX = Math.ceil(widthFactor)
+        maxY = Math.ceil(heightFactor)
 
-
-function draw(state) {
-  if (canvas.getContext) {
-    var ctx = canvas.getContext('2d');
-    var widthFactor = canvas.width / state.length;
-    var heightFactor = canvas.height / state[0].length;
-    for (var i = state.length - 1; i >= 0; i--) {
-      for (var j = state[i].length - 1; j >= 0; j--) {
-        var cell = state[i][j];
-        var x = cell.X * widthFactor;
-        var y = cell.Y * heightFactor;
-        var name = cell.Name;
-        ctx.fillStyle = nameToColor[cell.Name];
-        ctx.fillRect(x, y, widthFactor, heightFactor)
+        drawFunc[name](ctx, name, x, y, maxX, maxY);
       };
     };
   }
-}
 
+  var endpoint = "ws://"+raddr+"/"+playerName+"/ws";
 
+  var updateSrv = WS(endpoint+"/update", function(e) {
+    var state = JSON.parse(e.data);
+    draw(state.Board);
+  });
 
-var onUpdate = function(event) {
-  var state = JSON.parse(event.data);
-  draw(state.Board);
-};
+  var moveSrv = WS(endpoint+"/move");
 
+  var kb = Keyboard();
+  kb.map(kb.Up, "up")
+    .map(kb.Down, "down")
+    .map(kb.Left, "left")
+    .map(kb.Right, "right")
+    .map(kb.Space, "bomb")
+    .handler(moveSrv.send);
 
-var updateSrv = WS("ws://127.0.0.1:3333/p4/ws/update", onUpdate);
-var moveSrv = WS("ws://127.0.0.1:3333/p4/ws/move");
-
-var onMove = function(event) {
-  moveSrv.send(event);
-};
-
-var w = 87,
-    a = 65,
-    s = 83,
-    d = 68,
-    up = 38,
-    down = 40,
-    left = 37,
-    right = 39,
-    space = 32;
-
-var keymap = (function() {
-  var mapping = {};
-  mapping[up] = "up";
-  mapping[down] = "down";
-  mapping[left] = "left";
-  mapping[right] = "right";
-  mapping[space] = "bomb";
-
-  return {
-    handles: function (key) {
-      return mapping[key] != null;
-    },
-    action: function(key) {
-      return mapping[key];
-    },
-  }
-})();
-
-
-document.onkeydown = function(ev) {
-
-  if (keymap.handles(ev.keyCode)) {
-    moveSrv.send(keymap.action(ev.keyCode));
-    return false;
-  }
-  // was consumed, don't propagate event further
-  console.log("Unmaped:", ev.keyCode);
-  return true;
 };

@@ -1,4 +1,4 @@
-package bomberweb
+package player
 
 import (
 	"code.google.com/p/go.net/websocket"
@@ -12,7 +12,6 @@ type WebsocketPlayer struct {
 
 	// Comms
 	update  chan player.State
-	inMove  <-chan player.Move
 	outMove chan player.Move
 }
 
@@ -50,13 +49,12 @@ func NewWebsocketPlayer(state player.State, mux *http.ServeMux, l *logger.Logger
 			if err != nil {
 				l.Errorf("sending update to websocket conn, %v", err)
 			}
-			l.Infof("Send update")
 		}
 	}
 
-	mux.Handle("/ws/move", websocket.Handler(moveHandler))
-	mux.Handle("/ws/update", websocket.Handler(updateHandler))
-
+	mux.Handle("/"+i.Name()+"/ws/move", websocket.Handler(moveHandler))
+	mux.Handle("/"+i.Name()+"/ws/update", websocket.Handler(updateHandler))
+	mux.Handle("/", http.FileServer(http.Dir("client")))
 	return i
 }
 

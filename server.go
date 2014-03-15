@@ -5,5 +5,5 @@ import (
 )
 
 func main() {
-	http.ListenAndServe(":9000", http.FileServer(http.Dir("client")))
+	http.ListenAndServe(":10000", http.FileServer(http.Dir("client")))
 }

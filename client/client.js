@@ -40,8 +40,8 @@ var BomberClient = function(canvasId, playerName, raddr) {
         }
         boardCache[i][j] = name
 
-        x = Math.ceil(cell.X * widthFactor);
-        y = Math.ceil(cell.Y * heightFactor);
+        x = Math.ceil(i * widthFactor);
+        y = Math.ceil(j * heightFactor);
         maxX = Math.ceil(widthFactor)
         maxY = Math.ceil(heightFactor)
 
